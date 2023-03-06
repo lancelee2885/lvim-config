@@ -7,6 +7,20 @@ a global executable or a path to
 an executable
 ]]
 -- THESE ARE EXAMPLE CONFIGS FEEL FREE TO CHANGE TO WHATEVER YOU WANT
+local init_custom_options = function()
+	local custom_options = {
+		relativenumber = true, -- Set relative numbered lines
+		colorcolumn = "120", -- Indent line at what column? Set something like '99999' to not display it
+		scrolloff = 99999, -- Determines the number of context lines you would like to see above and below the cursor
+		ignorecase = true, -- Ignore case in search
+		smartcase = true, -- Case-sensitive search when search term contains uppercase characters. Otherwise, case-sensitive search.  timeoutlen = 200, -- Time to wait for a mapped sequence to complete (in milliseconds)
+	}
+
+	for k, v in pairs(custom_options) do
+		vim.opt[k] = v
+	end
+end
+init_custom_options()
 
 -- general
 lvim.log.level = "warn"
@@ -19,6 +33,10 @@ lvim.colorscheme = "lunar"
 lvim.leader = "space"
 -- add your own keymapping
 lvim.keys.normal_mode["<C-s>"] = ":w<cr>"
+lvim.keys.normal_mode["[q"] = ":cprev<CR>"
+lvim.keys.normal_mode["]q"] = ":cnext<CR>"
+lvim.keys.normal_mode["<C-q>"] = ":call QuickFixToggle()<CR>"
+
 -- lvim.keys.normal_mode["<S-l>"] = ":BufferLineCycleNext<CR>"
 -- lvim.keys.normal_mode["<S-h>"] = ":BufferLineCyclePrev<CR>"
 -- unmap a default keymapping
@@ -211,15 +229,24 @@ lvim.plugins = {
       config = function() require"lsp_signature".on_attach() end,
     },
     {
-      "nvim-telescope/telescope-project.nvim",
-      event = "BufWinEnter",
-      setup = function()
-        vim.cmd [[packadd telescope.nvim]]
-      end,
+      "github/copilot.vim",
     },
 }
+vim.g.copilot_no_tab_map = true
+vim.g.copilot_assume_mapped = true
+vim.g.copilot_tab_fallback = ""
+local cmp = require "cmp"
 
-
+-- remap copilot to C-e
+lvim.builtin.cmp.mapping["<C-e>"] = function(fallback)
+  cmp.mapping.abort()
+  local copilot_keys = vim.fn["copilot#Accept"]()
+  if copilot_keys ~= "" then
+    vim.api.nvim_feedkeys(copilot_keys, "i", true)
+  else
+    fallback()
+  end
+end
 
 -- Autocommands (https://neovim.io/doc/user/autocmd.html)
 -- vim.api.nvim_create_autocmd("BufEnter", {
@@ -277,7 +304,7 @@ lvim.autocommands = {
     }
   }
 }
-
-lvim.builtin.telescope.on_config_done = function(telescope)
-  pcall(telescope.load_extension, "nvim-telescope/telescope-project.nvim")
-end
+-- Telescope project will break how nvim tree work for some reason
+-- lvim.builtin.telescope.on_config_done = function(telescope)
+--   pcall(telescope.load_extension, "project")
+-- end
